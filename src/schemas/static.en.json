@@ -1,0 +1,26 @@
+{
+  "id": "static-brief-en",
+  "title": "Static Brief",
+  "language": "en",
+  "fields": [
+    {
+      "id": "projectTitle",
+      "type": "text",
+      "label": "Project Title",
+      "placeholder": "Enter project title",
+      "required": true
+    },
+    { "id": "about", "type": "textarea", "label": "About the project" },
+    { "id": "brand", "type": "textarea", "label": "Branding" },
+    { "id": "links", "type": "textarea", "label": "Links" },
+    { "id": "refs", "type": "textarea", "label": "References" },
+    { "id": "assets", "type": "textarea", "label": "Assets (photos/videos)" },
+    { "id": "sizes", "type": "text", "label": "Qty & Sizes" },
+    { "id": "texts", "type": "textarea", "label": "Copy / Headlines" },
+    { "id": "goals", "type": "textarea", "label": "Goals" },
+    { "id": "audience", "type": "textarea", "label": "Target audience" },
+    { "id": "wishes", "type": "textarea", "label": "Wishes" },
+    { "id": "deadline", "type": "text", "label": "Deadline" },
+    { "id": "cover", "type": "image", "label": "Cover image" }
+  ]
+}

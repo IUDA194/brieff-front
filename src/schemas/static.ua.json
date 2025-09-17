@@ -1,0 +1,26 @@
+{
+  "id": "static-brief-ua",
+  "title": "Бриф статика",
+  "language": "ua",
+  "fields": [
+    {
+      "id": "projectTitle",
+      "type": "text",
+      "label": "Назва проєкту",
+      "placeholder": "Введіть назву проєкту",
+      "required": true
+    },
+    { "id": "about", "type": "textarea", "label": "Коротко про проєкт" },
+    { "id": "brand", "type": "textarea", "label": "Фірмовий стиль" },
+    { "id": "links", "type": "textarea", "label": "Посилання" },
+    { "id": "refs", "type": "textarea", "label": "Референси" },
+    { "id": "assets", "type": "textarea", "label": "Матеріали (фото/відео)" },
+    { "id": "sizes", "type": "text", "label": "Кількість і розміри" },
+    { "id": "texts", "type": "textarea", "label": "Тексти/тези" },
+    { "id": "goals", "type": "textarea", "label": "Цілі проєкту" },
+    { "id": "audience", "type": "textarea", "label": "Цільова аудиторія" },
+    { "id": "wishes", "type": "textarea", "label": "Побажання" },
+    { "id": "deadline", "type": "text", "label": "Бажаний термін" },
+    { "id": "cover", "type": "image", "label": "Обкладинка (зображення)" }
+  ]
+}

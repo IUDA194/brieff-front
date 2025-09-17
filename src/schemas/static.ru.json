@@ -1,0 +1,19 @@
+{
+  "id": "static-brief-ru",
+  "title": "Бриф статика",
+  "fields": [
+    { "id": "projectTitle", "type": "text", "label": "Название проекта", "placeholder": "Введите название проекта", "required": true },
+    { "id": "about", "type": "textarea", "label": "1. Кратко о проекте:", "placeholder": "Название, вид деятельности, какой ценовой сегмент рынка занимаете?" },
+    { "id": "brand", "type": "textarea", "label": "2. Информация о вашем фирменном стиле:", "placeholder": "Брендбук, гайдлайн, шрифты, цвета (#******) ..." },
+    { "id": "links", "type": "textarea", "label": "3. Ссылки на сайт и соцсети:", "placeholder": "Ссылка на ваш инстаграм ..." },
+    { "id": "refs",  "type": "textarea", "label": "4. Ссылки на референсы:", "placeholder": "Распишите почему выбрали именно эти примеры/референсы" },
+    { "id": "assets","type": "textarea", "label": "5. Ссылки на материалы (фото/видео):", "placeholder": "Ссылки на Google Диск или на другие сервисы ..." },
+    { "id": "sizes", "type": "text",     "label": "6. Необходимое количество и размеры:", "placeholder": "5 штук, 1920×1080" },
+    { "id": "texts", "type": "textarea", "label": "7. Тексты/тезисы для креативов:", "placeholder": "УТП, подзаголовок, СТА..." },
+    { "id": "goals", "type": "textarea", "label": "8. Цели проекта:", "placeholder": "Повысить узнаваемость, рассказать о продукте..." },
+    { "id": "audience","type": "textarea","label": "9. Целевая аудитория:", "placeholder": "Пол, возраст, доход, какую боль решает продукт?" },
+    { "id": "wishes","type": "textarea", "label": "10. Ваши пожелания:", "placeholder": "Идеи, рекомендации, наставления..." },
+    { "id": "deadline","type": "text",   "label": "11. Желаемый срок выполнения, и почему:" },
+    { "id": "cover","type": "image",     "label": "Обложка (изображение)" }
+  ]
+}

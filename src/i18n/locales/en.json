@@ -1,0 +1,43 @@
+{
+  "header.titleFallback": "Brief",
+  "header.credits": "© Borysenko Design",
+    "header": {
+    "titleFallback": "Brief",
+    "credits": "© Borysenko Design",
+    "changeLang": "Change language",
+    "titles": {
+      "static": "Static Brief",
+      "prezent": "Presentation Brief",
+      "print": "Print Brief",
+      "video": "Video Brief",
+      "logo": "Logo Brief",
+      "pack": "Packaging Brief"
+    }
+  },
+
+  "history": {
+    "title": "Generation history (local)",
+    "note": "Stored only in this browser · up to 30 entries",
+    "empty": "No entries yet.",
+    "pdfLinkText": "PDF"
+  },
+
+
+  "rules.title": "Guidelines for filling out the brief:",
+  "rules.1.subtitle": "Deadlines must be clear and specific",
+  "rules.1.text1": "Not \"ASAP\", not \"yesterday\", not \"soon\".",
+  "rules.1.text2": "Correct: Feb 15, by 18:00 inclusive.",
+  "rules.2.subtitle": "Photos & videos — in one place only",
+  "rules.2.text1": "Upload materials to Google Drive or similar services.",
+  "rules.2.text2": "Only final, client-approved photos.",
+  "rules.3.subtitle": "Copy & offers — concise and to the point",
+  "rules.3.text1": "No \"you come up with it\", \"as you want\" or \"at your discretion\".",
+  "rules.3.text2": "Provide ready, structured information.",
+
+  "footer.links.static": "Static brief",
+  "footer.links.prezent": "Presentation brief",
+  "footer.links.print": "Print brief",
+  "footer.links.video": "Video brief",
+  "footer.links.logo": "Logo brief",
+  "footer.links.pack": "Packaging brief"
+}
