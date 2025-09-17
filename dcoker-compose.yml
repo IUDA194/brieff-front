@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  brieff_back:
+    image: ghcr.io/iuda194/brieff-back:main
+    container_name: brieff_back
+    restart: unless-stopped
+    ports:
+      - "8084:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/healthz/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [brieff_net]
+
+  brieff_front:
+    image: ghcr.io/iuda194/brieff-front:main
+    container_name: brieff_front
+    restart: unless-stopped
+    ports:
+      - "3223:3000"
+    depends_on:
+      brieff_back:
+        condition: service_healthy
+    networks: [brieff_net]
+
+networks:
+  brieff_net:
+    driver: bridge
