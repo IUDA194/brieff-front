@@ -11,6 +11,10 @@
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.16",
+    "@tiptap/extension-placeholder": "^3.4.4",
+    "@tiptap/extension-underline": "^3.4.4",
+    "@tiptap/react": "^3.4.4",
+    "@tiptap/starter-kit": "^3.4.4",
     "@uiw/react-markdown-preview": "^5.1.5",
     "@uiw/react-md-editor": "^4.0.8",
     "marked": "^16.3.0",
