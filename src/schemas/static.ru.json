@@ -13,7 +13,6 @@
     { "id": "goals", "type": "textarea", "label": "8. Цели проекта:", "placeholder": "Повысить узнаваемость, рассказать о продукте..." },
     { "id": "audience","type": "textarea","label": "9. Целевая аудитория:", "placeholder": "Пол, возраст, доход, какую боль решает продукт?" },
     { "id": "wishes","type": "textarea", "label": "10. Ваши пожелания:", "placeholder": "Идеи, рекомендации, наставления..." },
-    { "id": "deadline","type": "text",   "label": "11. Желаемый срок выполнения, и почему:" },
-    { "id": "cover","type": "image",     "label": "Обложка (изображение)" }
+    { "id": "deadline","type": "text",   "label": "11. Желаемый срок выполнения, и почему:" }
   ]
 }

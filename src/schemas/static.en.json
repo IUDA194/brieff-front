@@ -20,7 +20,6 @@
     { "id": "goals", "type": "textarea", "label": "Goals" },
     { "id": "audience", "type": "textarea", "label": "Target audience" },
     { "id": "wishes", "type": "textarea", "label": "Wishes" },
-    { "id": "deadline", "type": "text", "label": "Deadline" },
-    { "id": "cover", "type": "image", "label": "Cover image" }
+    { "id": "deadline", "type": "text", "label": "Deadline" }
   ]
 }

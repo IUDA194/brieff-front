@@ -341,33 +341,6 @@ export const FieldRenderer: React.FC<{
       `}</style>
 
       <div className="text-tools">
-        <button
-          type="button"
-          className="bold-btn"
-          onMouseDown={preventFocusSteal}
-          onClick={() => applyFormat('bold')}
-          title="Bold (Ctrl/Cmd+B)"
-        >
-          <b>B</b>
-        </button>
-        <button
-          type="button"
-          className="italic-btn"
-          onMouseDown={preventFocusSteal}
-          onClick={() => applyFormat('italic')}
-          title="Italic (Ctrl/Cmd+I)"
-        >
-          <i>i</i>
-        </button>
-        <button
-          type="button"
-          className="underline-btn"
-          onMouseDown={preventFocusSteal}
-          onClick={() => applyFormat('underline')}
-          title="Underline (Ctrl/Cmd+U)"
-        >
-          <span>U</span>
-        </button>
       </div>
 
       <Editable

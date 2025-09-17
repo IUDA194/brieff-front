@@ -22,7 +22,6 @@ const briefStatic: BriefDefinition = {
         audience: '9. Целевая аудитория:',
         wishes: '10. Ваши пожелания:',
         deadline: '11. Желаемый срок выполнения, и почему:',
-        cover: 'Обложка (изображение)'
       },
       en: {
         projectTitle: 'Project Title (for saving)',
@@ -37,7 +36,6 @@ const briefStatic: BriefDefinition = {
         audience: '9. Target audience:',
         wishes: '10. Your wishes:',
         deadline: '11. Desired deadline and why:',
-        cover: 'Cover image'
       },
       ua: {
         projectTitle: 'Назва проєкту (для збереження)',
@@ -52,7 +50,6 @@ const briefStatic: BriefDefinition = {
         audience: '9. Цільова аудиторія:',
         wishes: '10. Ваші побажання:',
         deadline: '11. Бажаний термін виконання і чому:',
-        cover: 'Обкладинка (зображення)'
       }
     },
     placeholders: {
@@ -113,7 +110,6 @@ const briefStatic: BriefDefinition = {
     { id: 'audience',     type: 'textarea', labelKey: 'audience',     placeholderKey: 'audience_ph' },
     { id: 'wishes',       type: 'textarea', labelKey: 'wishes',       placeholderKey: 'wishes_ph' },
     { id: 'deadline',     type: 'text',     labelKey: 'deadline',     placeholderKey: 'deadline_ph' },
-    { id: 'cover',        type: 'image',    labelKey: 'cover' }
   ]
 };
 

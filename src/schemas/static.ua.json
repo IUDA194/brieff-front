@@ -20,7 +20,6 @@
     { "id": "goals", "type": "textarea", "label": "Цілі проєкту" },
     { "id": "audience", "type": "textarea", "label": "Цільова аудиторія" },
     { "id": "wishes", "type": "textarea", "label": "Побажання" },
-    { "id": "deadline", "type": "text", "label": "Бажаний термін" },
-    { "id": "cover", "type": "image", "label": "Обкладинка (зображення)" }
+    { "id": "deadline", "type": "text", "label": "Бажаний термін" }
   ]
 }
