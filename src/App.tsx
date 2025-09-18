@@ -10,6 +10,12 @@ import type { RuntimeSchema, SubmissionPayload } from './types';
 import { loadBriefs, realizeSchema } from './briefs';
 import { API_URL, STORAGE_PREFIX } from './config';
 
+// tiptap → Markdown утилиты
+import { isTiptapJson, tiptapToMarkdown } from './utils/tiptapToMarkdown';
+
+// HTML → Markdown
+import TurndownService from 'turndown';
+
 type BriefType = 'static' | 'prezent' | 'print' | 'video' | 'logo' | 'pack';
 const skey = (briefId: string) => `${STORAGE_PREFIX}:brief:${briefId}`;
 const HISTORY_KEY = `${STORAGE_PREFIX}:brief:history`;
@@ -116,6 +122,44 @@ function loadValuesForBriefId(briefId: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+/** -------- HTML → Markdown (Turndown) ---------- */
+const td = new TurndownService({
+  headingStyle: 'atx',          // # H1
+  bulletListMarker: '-',        // - item
+  codeBlockStyle: 'fenced',     // ``` code ```
+  emDelimiter: '*',
+  strongDelimiter: '**',
+  hr: '---',
+});
+// <br> → мягкий перенос
+td.addRule('preserveLineBreaks', {
+  filter: ['br'],
+  replacement: () => '  \n',
+});
+// удалить пустые абзацы <p></p>
+td.addRule('stripEmptyParas', {
+  filter: (node) => node.nodeName === 'P' && node.textContent?.trim() === '',
+  replacement: () => '',
+});
+function looksLikeHtml(s: string): boolean {
+  return /<\/?(p|h\d|ul|ol|li|strong|em|b|i|blockquote|code|pre|br)\b/i.test(s);
+}
+
+/** Универсальная нормализация значений перед отправкой на бэк:
+ * 1) tiptap JSON → Markdown
+ * 2) строковый HTML → Markdown
+ * 3) иначе — как есть
+ */
+function normalizeValueForBackend(v: unknown): unknown {
+  try {
+    if (isTiptapJson(v)) return tiptapToMarkdown(v);
+    if (typeof v === 'string' && looksLikeHtml(v)) {
+      return td.turndown(v);
+    }
+  } catch {/* ignore */}
+  return v;
 }
 
 // ---------- component ----------
@@ -264,7 +308,6 @@ const App: React.FC = () => {
 
   async function onDownload() {
     if (!schema) return;
-    // защита от повторного клика, пока идёт запрос
     if (loading) return;
 
     const briefIdPre = pickBriefId({ pageUrl, current, schemaId: schema?.id ?? null });
@@ -274,10 +317,14 @@ const App: React.FC = () => {
     }
 
     const lsValues = loadValuesForBriefId(briefIdPre);
-    const effectiveValues =
-      (lsValues && Object.keys(lsValues).length > 0) ? lsValues : values;
+    const rawValues = (lsValues && Object.keys(lsValues).length > 0) ? lsValues : values;
 
-    const dataLocalized = buildLocalizedDataMap(schema, effectiveValues);
+    // 🔸 КЛЮЧЕВОЕ: нормализация перед отправкой (TipTap JSON → MD, иначе HTML → MD)
+    const normalizedValues = Object.fromEntries(
+      Object.entries(rawValues).map(([k, v]) => [k, normalizeValueForBackend(v)])
+    );
+
+    const dataLocalized = buildLocalizedDataMap(schema, normalizedValues);
 
     const payload: SubmissionPayload = {
       briefId: briefIdPre,

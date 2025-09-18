@@ -2,6 +2,7 @@
 import React from 'react';
 import type { RuntimeField } from '../types';
 import { Editable } from './Editable';
+import { isTiptapJson, tiptapToMarkdown } from '../utils/tiptapToMarkdown';
 
 type SavedSelection = { range: Range } | null;
 
@@ -16,7 +17,6 @@ function nodePath(n: Node | null | undefined) {
   if (!n) return '∅';
   const parts: string[] = [];
   let cur: Node | null = n;
-  // ограничим до 4 уровней вверх
   for (let i = 0; i < 4 && cur; i++) {
     if ((cur as HTMLElement).nodeType === 1) {
       const el = cur as HTMLElement;
@@ -128,7 +128,7 @@ function mdToHtml(mdRaw: string): string {
       if (inUl) { html.push('</ul>'); inUl = false; }
       if (!inOl) { html.push('<ol>'); inOl = true; }
       html.push(`<li>${line.replace(/^\d+\.\s+/, '')}</li>`);
-      continue;
+      continue; 
     }
 
     if (line === '') { closeLists(); closeQuote(); html.push(''); continue; }
@@ -155,7 +155,6 @@ export const FieldRenderer: React.FC<{
   const wrapRef = React.useRef<HTMLDivElement | null>(null);
   const savedSelRef = React.useRef<SavedSelection>(null);
 
-  // Сервис: найти editable в текущем wrap
   const getEditable = (): HTMLElement | null => {
     const root = wrapRef.current;
     if (!root) return null;
@@ -167,7 +166,6 @@ export const FieldRenderer: React.FC<{
     );
   };
 
-  // Логгер состояния selection и editable
   const logContext = (stage: string) => {
     if (!DEBUG_FR) return;
     const editable = getEditable();
@@ -196,7 +194,6 @@ export const FieldRenderer: React.FC<{
     });
   };
 
-  /** Помним выделение (для execCommand и серий кликов по кнопкам форматирования) */
   const rememberSelection = () => {
     savedSelRef.current = saveSelection();
   };
@@ -211,7 +208,6 @@ export const FieldRenderer: React.FC<{
     return () => document.removeEventListener('selectionchange', onSel);
   }, []);
 
-  /** Универсальное применение форматирования к текущему выделению */
   const applyFormat = (cmd: 'bold' | 'italic' | 'underline') => {
     group(`applyFormat(${cmd})`);
     logContext('before');
@@ -223,28 +219,23 @@ export const FieldRenderer: React.FC<{
       return;
     }
 
-    // Проверим поддержку команд
     const supported = (document as any).queryCommandSupported?.(cmd);
     const enabled = (document as any).queryCommandEnabled?.(cmd);
     const stateBefore = (document as any).queryCommandState?.(cmd);
     log('command support:', { supported, enabled, stateBefore });
 
-    // Если нет сохранённого ранжа — попробуем взять текущий
     if (!savedSelRef.current) {
       warn('No saved selection. Will try to use current window selection.');
     }
 
-    // Восстанавливаем выделение и фокус в редактор
     restoreSelection(savedSelRef.current);
     if (document.activeElement !== editable) {
       editable.focus();
       log('focused editable');
     }
 
-    // Повторно логнем контекст
     logContext('after focus/restore');
 
-    // Выполняем команду
     let ok = false;
     try {
       // eslint-disable-next-line deprecation/deprecation
@@ -258,14 +249,12 @@ export const FieldRenderer: React.FC<{
     const enabledAfter = (document as any).queryCommandEnabled?.(cmd);
     log('command state after:', { stateAfter, enabledAfter });
 
-    // Синхронизируем значение наверх
     const ceAttr = editable.getAttribute('contenteditable');
     const prev =
       ceAttr === 'true'
         ? (editable as HTMLElement).innerHTML
         : (editable as HTMLInputElement).value ?? (editable as HTMLElement).innerText;
 
-    // Форс-обновление: читаем снова после команды
     const next =
       ceAttr === 'true'
         ? (editable as HTMLElement).innerHTML
@@ -278,21 +267,15 @@ export const FieldRenderer: React.FC<{
     });
 
     onChange(next);
-
-    // Пересохраняем выделение
     rememberSelection();
-
     groupEnd();
   };
 
-  /** Кнопки не должны красть фокус у редактора */
   const preventFocusSteal = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    // Для надёжности — оставим курсор где был
     rememberSelection();
   };
 
-  /** Тулбар + универсальный Editable (contenteditable) для текстоподобных полей */
   const renderTextLike = () => (
     <div className="text-area-wrapper" ref={wrapRef}>
       <style>{`
@@ -344,8 +327,6 @@ export const FieldRenderer: React.FC<{
       </div>
 
       <Editable
-        // ВАЖНО: убедись, что Editable реально рендерит КОРНЕВОЙ элемент с contentEditable={true}
-        // и применяет сюда className="editable". Иначе execCommand не сработает.
         className="editable"
         value={(value as string) ?? ''}
         placeholder={field.placeholder}
@@ -362,7 +343,6 @@ export const FieldRenderer: React.FC<{
     </div>
   );
 
-  // ——— РЕНДЕР ПО ТИПАМ ———
   switch (field.type) {
     case 'text':
     case 'textarea':
@@ -432,13 +412,25 @@ export const FieldRenderer: React.FC<{
     case 'markdown': {
       return (
         <div className="text-area-wrapper" ref={wrapRef}>
-          <div className="text-tools">
-          </div>
+          <div className="text-tools" />
           <Editable
             className="editable"
             value={(value as string) ?? ''}
             placeholder={field.placeholder || 'Вставьте Markdown...'}
-            onChange={(v) => { log('markdown.Editable.onChange len:', (v as string)?.length ?? 0); onChange(v); rememberSelection(); }}
+            onChange={(v) => {
+              // v может быть string (уже Markdown) или tiptap JSON (doc)
+              let out: unknown = v;
+              try {
+                if (isTiptapJson(v)) {
+                  out = tiptapToMarkdown(v);
+                }
+              } catch (e) {
+                warn('tiptap→md failed:', e);
+              }
+              log('markdown.onChange → sending type:', typeof out);
+              onChange(out);
+              rememberSelection();
+            }}
             onKeyUp={() => { log('markdown.Editable.onKeyUp'); rememberSelection(); }}
             onMouseUp={() => { log('markdown.Editable.onMouseUp'); rememberSelection(); }}
           />
