@@ -46,7 +46,12 @@ export const Editable: React.FC<Props> = ({
   height = 420,
 }) => {
   const editor = useEditor({
-    extensions: [StarterKit, Placeholder.configure({ placeholder })],
+    extensions: [StarterKit,     Placeholder.configure({
+      placeholder,                 // берём из пропса
+      showOnlyWhenEditable: true,  // не показывать в readonly
+      showOnlyCurrent: true,       // показывать только для текущего пустого блока
+      emptyEditorClass: 'is-editor-empty',
+    }),],
     content: value || "",
     editorProps: {
       attributes: {
@@ -239,7 +244,61 @@ export const Editable: React.FC<Props> = ({
       .he-content h2 { font-size: 21.3px; }  /* Heading 2 */
       .he-content h3 { font-size: 18.7px; }  /* Heading 3 */
       .he-content h4 { font-size: 16px;   }  /* Heading 4 (необяз.) */
-      `}</style>
+      /* Базовый плейсхолдер для первого пустого абзаца */
+      /* делаем контейнеры позиционируемыми */
+      .he-content .ProseMirror p.is-editor-empty,
+      .he-content .ProseMirror h1.is-editor-empty,
+      .he-content .ProseMirror h2.is-editor-empty,
+      .he-content .ProseMirror h3.is-editor-empty {
+        position: relative;
+      }
+
+      /* Плейсхолдер — абсолютный, с обрезкой и троеточием */
+      .he-content .ProseMirror p.is-editor-empty:first-child::before,
+      .he-content .ProseMirror h1.is-editor-empty::before,
+      .he-content .ProseMirror h2.is-editor-empty::before,
+      .he-content .ProseMirror h3.is-editor-empty::before {
+        content: attr(data-placeholder);
+        position: absolute;
+        inset-inline-start: 0;   /* left в LTR */
+        inset-inline-end: 0;     /* right */
+        top: 0.1em;
+        color: #9ca3af;
+        pointer-events: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      .he-content .ProseMirror p.is-editor-empty,
+      .he-content .ProseMirror h1.is-editor-empty,
+      .he-content .ProseMirror h2.is-editor-empty,
+      .he-content .ProseMirror h3.is-editor-empty {
+        position: relative;
+      }
+
+      .he-content .ProseMirror p.is-editor-empty:first-child::before,
+      .he-content .ProseMirror h1.is-editor-empty::before,
+      .he-content .ProseMirror h2.is-editor-empty::before,
+      .he-content .ProseMirror h3.is-editor-empty::before {
+        content: attr(data-placeholder);
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        color: #9ca3af;
+        pointer-events: none;
+        white-space: normal;       /* разрешаем перенос */
+        word-break: break-word;    /* ломаем длинные слова */
+      }
+
+
+
+      
+      `}
+      </style>
 
       {/* Панель */}
       <div className="he-toolbar" role="toolbar" aria-label="Text formatting">

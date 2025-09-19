@@ -1,7 +1,7 @@
 // src/briefs/schemas.ts
 
 export type Locale = "ru" | "uk" | "en";
-export type BriefType = "static" | "video" | "print" | "logo";
+export type BriefType = "static" | "video" | "print" | "logo" | "presentation";
 
 export interface Contact {
   name: string;
@@ -218,4 +218,46 @@ export interface LogoBrief extends BaseBrief {
   };
 }
 
-export type AnyBrief = StaticBrief | VideoBrief | PrintBrief | LogoBrief;
+/** PRESENTATION */
+export interface PresentationSlideText {
+  slideNumber?: number;
+  text?: string;
+  note?: string;
+}
+
+/** PRESENTATION */
+export interface PresentationBrief {
+  type: "presentation";
+  locale: Locale;
+
+  projectTitle: string;
+
+  // 1. Текст для каждого слайда или ссылка
+  slidesText: string;
+
+  // 2. Цвета/шрифты/брендбук
+  designRefs?: ReferenceLink[];
+
+  // 3. Цель/задача и ниша
+  goal: string;
+
+  // 4. Референсы
+  references?: ReferenceLink[];
+
+  // 5. Материалы
+  assetsLinks?: ReferenceLink[];
+
+  // 6. Размер/ориентация
+  size: string;
+
+  // 7. Сроки
+  deadline: string;
+}
+
+
+export type AnyBrief =
+  | StaticBrief
+  | VideoBrief
+  | PrintBrief
+  | LogoBrief
+  | PresentationBrief;

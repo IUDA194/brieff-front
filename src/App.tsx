@@ -16,6 +16,9 @@ import { isTiptapJson, tiptapToMarkdown } from './utils/tiptapToMarkdown';
 // HTML → Markdown
 import TurndownService from 'turndown';
 
+// валидация (берёт тип из URL, поддерживает алиасы)
+import { validateBrief, type ValidationErrorMap } from './briefs/validate';
+
 type BriefType = 'static' | 'prezent' | 'print' | 'video' | 'logo' | 'pack';
 const skey = (briefId: string) => `${STORAGE_PREFIX}:brief:${briefId}`;
 const HISTORY_KEY = `${STORAGE_PREFIX}:brief:history`;
@@ -126,19 +129,14 @@ function loadValuesForBriefId(briefId: string): Record<string, unknown> {
 
 /** -------- HTML → Markdown (Turndown) ---------- */
 const td = new TurndownService({
-  headingStyle: 'atx',          // # H1
-  bulletListMarker: '-',        // - item
-  codeBlockStyle: 'fenced',     // ``` code ```
+  headingStyle: 'atx',
+  bulletListMarker: '-',
+  codeBlockStyle: 'fenced',
   emDelimiter: '*',
   strongDelimiter: '**',
   hr: '---',
 });
-// <br> → мягкий перенос
-td.addRule('preserveLineBreaks', {
-  filter: ['br'],
-  replacement: () => '  \n',
-});
-// удалить пустые абзацы <p></p>
+td.addRule('preserveLineBreaks', { filter: ['br'], replacement: () => '  \n' });
 td.addRule('stripEmptyParas', {
   filter: (node) => node.nodeName === 'P' && node.textContent?.trim() === '',
   replacement: () => '',
@@ -146,20 +144,65 @@ td.addRule('stripEmptyParas', {
 function looksLikeHtml(s: string): boolean {
   return /<\/?(p|h\d|ul|ol|li|strong|em|b|i|blockquote|code|pre|br)\b/i.test(s);
 }
-
-/** Универсальная нормализация значений перед отправкой на бэк:
- * 1) tiptap JSON → Markdown
- * 2) строковый HTML → Markdown
- * 3) иначе — как есть
- */
 function normalizeValueForBackend(v: unknown): unknown {
   try {
     if (isTiptapJson(v)) return tiptapToMarkdown(v);
-    if (typeof v === 'string' && looksLikeHtml(v)) {
-      return td.turndown(v);
-    }
+    if (typeof v === 'string' && looksLikeHtml(v)) return td.turndown(v);
   } catch {/* ignore */}
   return v;
+}
+
+/** ===================== URL <-> STATE ===================== */
+function parsePath(pathname: string) {
+  const parts = pathname.replace(/^\/+|\/+$/g, "").split("/");
+  const type = (parts[0] || "").toLowerCase();
+  const lang = (parts[1] || "").toLowerCase();
+  return { type, lang };
+}
+const ALLOWED_TYPES = ["static", "video", "print", "logo", "pack", "presentation", "prezent"] as const;
+type AllowedType = typeof ALLOWED_TYPES[number];
+const TYPE_ALIASES: Record<string, AllowedType> = {
+  prezent: "presentation",
+  pres: "presentation",
+  deck: "presentation",
+};
+function normalizePathType(t: string | null | undefined): string | null {
+  if (!t) return null;
+  const s = String(t).toLowerCase();
+  return TYPE_ALIASES[s] ?? s;
+}
+function buildUrl(type: string, lang: string, search = "", hash = "") {
+  const normSearch = search || "";
+  const normHash = hash || "";
+  return `/${type}/${lang}/${normSearch}${normHash}`;
+}
+function resolveEffectiveType(urlTypeNorm: string | null, knownTypes: string[]): string | null {
+  if (!urlTypeNorm) return null;
+  if (knownTypes.includes(urlTypeNorm)) return urlTypeNorm;
+  if (ALLOWED_TYPES.includes(urlTypeNorm as AllowedType)) return urlTypeNorm;
+  return null;
+}
+function isKnownType(type: string | null | undefined, known: string[]): type is string {
+  return !!type && known.includes(type);
+}
+function pickLangFromUrl(urlLang: string | null | undefined, fallback: string) {
+  const s = String(urlLang || "").toLowerCase();
+  return s || fallback;
+}
+
+/** -------- Алиасы id для поиска схемы -------- */
+const BRIEF_ID_ALIASES: Record<string, string> = {
+  prezent: "presentation",
+  presentation: "prezent",
+};
+/** Возвращает id, который реально есть в loadBriefs(), с учётом алиасов */
+function resolveBriefIdForSchema(currentId: string | null, knownIds: string[]): string | null {
+  if (!currentId) return null;
+  const id = currentId.toLowerCase();
+  if (knownIds.includes(id)) return id;
+  const alt = BRIEF_ID_ALIASES[id];
+  if (alt && knownIds.includes(alt)) return alt;
+  return null;
 }
 
 // ---------- component ----------
@@ -167,43 +210,10 @@ const App: React.FC = () => {
   const { lang } = useI18n();
   const isRu = String(lang).toLowerCase().startsWith('ru');
 
-  // 🔁 Редирект с "/" (и "/index.html", "/static" без языка) на /static/<lang>/
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const { pathname, search, hash } = window.location;
-    const lcLang = String(lang || 'en').toLowerCase();
-    const target = `/static/${lcLang}/`;
-    const norm = pathname.replace(/\/+$/, '/') || '/';
-    const needRedirect =
-      norm === '/' ||
-      norm === '/index.html' ||
-      norm === '/static' ||
-      norm === '/static/';
-    if (needRedirect) {
-      const to = `${target}${search}${hash}`;
-      if (norm + search + hash !== to) {
-        window.location.replace(to);
-      }
-    }
-  }, [lang]);
-
-  // мини-словарь
-  const TXT = {
-    historyTitle: isRu ? 'История генераций' : 'Generation history',
-    historySubtitle: isRu
-      ? 'Хранится только в этом браузере · максимум 30 записей'
-      : 'Stored only in this browser · up to 30 entries',
-    empty: isRu ? 'Пока пусто.' : 'Nothing here yet.',
-    pdfLink: isRu ? 'Открыть PDF' : 'Open PDF',
-    loadInto: isRu ? 'Загрузить в форму' : 'Load into form',
-    remove: isRu ? 'Удалить' : 'Delete',
-    confirmRemove: isRu ? 'Удалить эту запись из истории?' : 'Delete this history entry?',
-    removedToast: isRu ? 'Запись удалена.' : 'Entry deleted.',
-    loadedToast: isRu ? 'Поля загружены из истории.' : 'Fields loaded from history.',
-    notFoundToast: isRu ? 'Шаблон брифа не найден.' : 'Brief template not found.',
-  };
-
   const briefs = React.useRef(loadBriefs());
+  // сразу после const briefs = React.useRef(loadBriefs());
+  console.log('[briefs ids]', briefs.current.map(b => b.id));
+
   const [briefIds, setBriefIds] = React.useState<string[]>([]);
   const [current, setCurrent] = React.useState<string | null>(null);
 
@@ -223,18 +233,99 @@ const App: React.FC = () => {
     setHistory(loadHistory());
   }, []);
 
-  // rebuild schema on language / brief change
+  // 1) URL → current (бережно)
   React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const { pathname, search, hash } = window.location;
+
+    const knownTypes = briefs.current.map(b => b.id);
+    const lcLang = String(lang || "en").toLowerCase();
+
+    const { type: pathTypeRaw, lang: pathLang } = parsePath(pathname);
+    const pathTypeNorm = normalizePathType(pathTypeRaw);
+    const effectiveType = resolveEffectiveType(pathTypeNorm, knownTypes);
+
+    if (effectiveType) {
+      const urlLang = (pathLang || lcLang).toLowerCase();
+      const shouldFixLang = !pathLang || pathLang.toLowerCase() !== urlLang;
+      const shouldFixType = knownTypes.includes(effectiveType) && pathTypeRaw?.toLowerCase() !== effectiveType;
+
+      if (shouldFixLang || shouldFixType) {
+        const to = buildUrl(
+          shouldFixType ? effectiveType : (pathTypeRaw || effectiveType),
+          urlLang,
+          search,
+          hash
+        );
+        window.history.replaceState({}, "", to);
+      }
+      setCurrent(prev => (prev === effectiveType ? prev : effectiveType));
+      return;
+    }
+
+    const defaultType = knownTypes[0] || "static";
+    const to = buildUrl(defaultType, lcLang, search, hash);
+    window.history.replaceState({}, "", to);
+    setCurrent(defaultType);
+  }, [lang]);
+
+  // 2) current → URL (аккуратно)
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
     if (!current) return;
-    const def = briefs.current.find(b => b.id === current);
-    if (!def) return;
-    setSchema(realizeSchema(def, lang)); // локализация label тут
+
+    const knownTypes = briefs.current.map(b => b.id);
+    const { pathname, search, hash } = window.location;
+    const { type: pathTypeRaw, lang: pathLang } = parsePath(pathname);
+    const urlLang = (pathLang || String(lang || "en")).toLowerCase();
+
+    const typeToWrite = knownTypes.includes(current) ? current : (pathTypeRaw || current);
+
+    const desired = buildUrl(typeToWrite, urlLang, search, hash);
+    const now = `${pathname}${search}${hash}`;
+
+    if (now !== desired) {
+      window.history.replaceState({}, "", desired);
+    }
   }, [current, lang]);
 
-  // load saved values for selected brief into state (для live-редактора)
+  // 3) Back/Forward → current
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const knownTypes = briefs.current.map(b => b.id);
+
+    const onPop = () => {
+      const { pathname } = window.location;
+      const { type: pathTypeRaw } = parsePath(pathname);
+      const pathTypeNorm = normalizePathType(pathTypeRaw);
+      const effectiveType = resolveEffectiveType(pathTypeNorm, knownTypes);
+      if (effectiveType) setCurrent(prev => (prev === effectiveType ? prev : effectiveType));
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  // rebuild schema on language / brief change (с алиасами id)
   React.useEffect(() => {
     if (!current) return;
-    setValues(loadValuesForBriefId(current));
+    const knownIds = briefs.current.map(b => b.id);
+    const resolvedId = resolveBriefIdForSchema(current, knownIds);
+    if (!resolvedId) return;
+
+    const def = briefs.current.find(b => b.id === resolvedId);
+    if (!def) return;
+
+    if (current !== resolvedId) setCurrent(resolvedId); // выравниваем состояние
+    setSchema(realizeSchema(def, lang));
+  }, [current, lang]);
+
+  // load saved values for selected brief (по реальному id)
+  React.useEffect(() => {
+    if (!current) return;
+    const knownIds = briefs.current.map(b => b.id);
+    const resolvedId = resolveBriefIdForSchema(current, knownIds);
+    if (!resolvedId) return;
+    setValues(loadValuesForBriefId(resolvedId));
   }, [current]);
 
   function updateField(id: string, v: unknown) {
@@ -251,7 +342,7 @@ const App: React.FC = () => {
     if (toast) {
       toast.textContent = text;
       toast.style.display = 'block';
-      setTimeout(() => (toast.style.display = 'none'), 1600);
+      setTimeout(() => (toast.style.display = 'none'), 1800);
     } else {
       alert(text);
     }
@@ -266,49 +357,72 @@ const App: React.FC = () => {
     const next = history.filter(h => h.id !== id);
     saveHistory(next);
     setHistory(next);
-    showToast(TXT.removedToast);
+    showToast(isRu ? 'Запись удалена.' : 'Entry deleted.');
   }
 
-  /** Загрузить values из записи истории в localStorage брифа и открыть его */
+  /** Загрузить values из истории в форму */
   function loadHistoryIntoForm(item: PdfHistoryItem) {
-    // 1) найти определение брифа
     const def = briefs.current.find(b => b.id === item.briefId);
     if (!def) {
-      showToast(TXT.notFoundToast);
+      showToast(isRu ? 'Шаблон брифа не найден.' : 'Brief template not found.');
       return;
     }
-    // 2) реализовать схему в языке записи (чтобы лейблы совпали)
     const sc = realizeSchema(def, item.lang as any);
-    // 3) карта "нормализованный label → id"
     const labelToId = new Map<string, string>();
-    for (const f of sc.fields) {
-      labelToId.set(normalizeLabel(f.label) || f.id, f.id);
-    }
-    // 4) пробежаться по локализованным ключам из истории и собрать объект по id
+    for (const f of sc.fields) labelToId.set(normalizeLabel(f.label) || f.id, f.id);
+
     const incoming = (item.payload?.data ?? {}) as Record<string, unknown>;
     const next: Record<string, unknown> = {};
     const unmapped: string[] = [];
     for (const [label, val] of Object.entries(incoming)) {
       const id = labelToId.get(normalizeLabel(label));
-      if (id) next[id] = val;
-      else unmapped.push(label);
+      if (id) next[id] = val; else unmapped.push(label);
     }
-    if (unmapped.length) {
-      console.warn('[history->form] Unmapped labels:', unmapped);
-    }
-    // 5) сохранить в localStorage этого брифа
-    try {
-      localStorage.setItem(skey(item.briefId), JSON.stringify(next));
-    } catch {}
-    // 6) переключиться на этот бриф и/или обновить значения
+    if (unmapped.length) console.warn('[history->form] Unmapped labels:', unmapped);
+    try { localStorage.setItem(skey(item.briefId), JSON.stringify(next)); } catch {}
     setCurrent(item.briefId);
     if (current === item.briefId) setValues(next);
-    showToast(TXT.loadedToast);
+    showToast(isRu ? 'Поля загружены из истории.' : 'Fields loaded from history.');
+  }
+
+  function buildValidationData(): Record<string, unknown> {
+    const v = { ...(values || {}) } as Record<string, unknown>;
+    if (current) v.type = current;
+    if (!('projectTitle' in v) && typeof (values as any)?.projectTitle === 'string') {
+      v.projectTitle = (values as any).projectTitle;
+    }
+    return v;
+  }
+  function stringifyErrors(errs: ValidationErrorMap): string {
+    const entries = Object.entries(errs);
+    if (!entries.length) return '';
+    const max = 6;
+    const lines = entries.slice(0, max).map(([k, msg]) => `• ${k}: ${msg}`);
+    if (entries.length > max) lines.push(`… +${entries.length - max}`);
+    return lines.join('\n');
+  }
+  function scrollToErrorField(errKey: string) {
+    const idCandidate = errKey.includes('.') ? errKey.split('.')[0] : errKey;
+    const el = document.getElementById(`field-${idCandidate}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.animate?.([{ outline: '2px solid #ff6c00' }, { outline: 'none' }], { duration: 1600 });
+    }
   }
 
   async function onDownload() {
     if (!schema) return;
     if (loading) return;
+
+    // клиентская валидация
+    const vErrors = validateBrief(buildValidationData() as any, { href: pageUrl });
+    if (Object.keys(vErrors).length > 0) {
+      const firstKey = Object.keys(vErrors)[0];
+      scrollToErrorField(firstKey);
+      showToast(isRu ? 'Исправьте ошибки в форме:\n' + stringifyErrors(vErrors)
+                     : 'Please fix form errors:\n' + stringifyErrors(vErrors));
+      return;
+    }
 
     const briefIdPre = pickBriefId({ pageUrl, current, schemaId: schema?.id ?? null });
     if (!briefIdPre) {
@@ -319,11 +433,9 @@ const App: React.FC = () => {
     const lsValues = loadValuesForBriefId(briefIdPre);
     const rawValues = (lsValues && Object.keys(lsValues).length > 0) ? lsValues : values;
 
-    // 🔸 КЛЮЧЕВОЕ: нормализация перед отправкой (TipTap JSON → MD, иначе HTML → MD)
     const normalizedValues = Object.fromEntries(
       Object.entries(rawValues).map(([k, v]) => [k, normalizeValueForBackend(v)])
     );
-
     const dataLocalized = buildLocalizedDataMap(schema, normalizedValues);
 
     const payload: SubmissionPayload = {
@@ -333,7 +445,6 @@ const App: React.FC = () => {
       data: dataLocalized,
     };
 
-    // DEBUG
     console.log('=== BRIEF (локализованные ключи по H2) [SENT TO BACKEND] ===');
     console.log(JSON.stringify(dataLocalized, null, 2));
 
@@ -346,10 +457,7 @@ const App: React.FC = () => {
     try {
       const res = await fetch(`${API_URL}/brief/pdf`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
@@ -358,16 +466,9 @@ const App: React.FC = () => {
 
       if (res.status === 422) {
         const err = await res.json().catch(() => ({}));
-        showToast(isRu ? 'Ошибка валидации данных брифа (422). Проверьте обязательные поля.' : 'Validation error (422). Check required fields.');
-        addToHistory({
-          id: uuid(),
-          briefId: briefIdPre,
-          lang,
-          requestedAt: new Date().toISOString(),
-          payload,
-          response: err,
-          link: null,
-        });
+        showToast(isRu ? 'Ошибка валидации данных брифа (422). Проверьте обязательные поля.'
+                       : 'Validation error (422). Check required fields.');
+        addToHistory({ id: uuid(), briefId: briefIdPre, lang, requestedAt: new Date().toISOString(), payload, response: err, link: null });
         setHistory(loadHistory());
         return;
       }
@@ -375,15 +476,7 @@ const App: React.FC = () => {
       if (!res.ok) {
         const msg = await res.text().catch(() => '');
         showToast((isRu ? 'Ошибка генерации PDF' : 'PDF generation error') + ` (${res.status}).`);
-        addToHistory({
-          id: uuid(),
-          briefId: briefIdPre,
-          lang,
-          requestedAt: new Date().toISOString(),
-          payload,
-          response: { status: res.status, body: msg },
-          link: null,
-        });
+        addToHistory({ id: uuid(), briefId: briefIdPre, lang, requestedAt: new Date().toISOString(), payload, response: { status: res.status, body: msg }, link: null });
         setHistory(loadHistory());
         return;
       }
@@ -392,18 +485,9 @@ const App: React.FC = () => {
       const fileUrl: string | undefined = data?.file_url || data?.url || data?.link;
 
       const briefIdFinal =
-        pickBriefId({ pageUrl, fileUrl: fileUrl ?? null, current, schemaId: schema?.id ?? null }) ||
-        briefIdPre;
+        pickBriefId({ pageUrl, fileUrl: fileUrl ?? null, current, schemaId: schema?.id ?? null }) || briefIdPre;
 
-      addToHistory({
-        id: uuid(),
-        briefId: briefIdFinal,
-        lang,
-        requestedAt: new Date().toISOString(),
-        payload,
-        response: data,
-        link: fileUrl ?? null,
-      });
+      addToHistory({ id: uuid(), briefId: briefIdFinal, lang, requestedAt: new Date().toISOString(), payload, response: data, link: fileUrl ?? null });
       setHistory(loadHistory());
 
       if (fileUrl) {
@@ -448,33 +532,18 @@ const App: React.FC = () => {
   const displayTitle = (values['projectTitle'] as string) || undefined;
 
   const fmtDate = (iso: string) =>
-    new Date(iso).toLocaleString(isRu ? 'ru-RU' : 'en-US', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    });
+    new Date(iso).toLocaleString(isRu ? 'ru-RU' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' });
 
   const renderValue = (val: unknown) => {
     if (val == null) return <em className="history-empty">{isRu ? '— пусто —' : '— empty —'}</em>;
     if (typeof val === 'string') {
       if (/^https?:\/\//i.test(val)) {
-        return (
-          <a className="history-link" href={val} target="_blank" rel="noreferrer">
-            {val}
-          </a>
-        );
+        return <a className="history-link" href={val} target="_blank" rel="noreferrer">{val}</a>;
       }
       return <span>{val}</span>;
     }
-    if (Array.isArray(val)) {
-      return (
-        <ul className="history-list">
-          {val.map((v, i) => <li key={i}>{renderValue(v)}</li>)}
-        </ul>
-      );
-    }
-    if (typeof val === 'object') {
-      return <code className="history-code">{JSON.stringify(val)}</code>;
-    }
+    if (Array.isArray(val)) return <ul className="history-list">{val.map((v, i) => <li key={i}>{renderValue(v)}</li>)}</ul>;
+    if (typeof val === 'object') return <code className="history-code">{JSON.stringify(val)}</code>;
     return <span>{String(val)}</span>;
   };
 
@@ -486,25 +555,18 @@ const App: React.FC = () => {
       <div className="brief-wrapper">
         <div className="brief-content">
           {schema?.fields.map(f => (
-            <div className="brief-section" key={f.id}>
+            <div className="brief-section" key={f.id} id={`field-${f.id}`}>
               <h2>{f.label}</h2>
               <FieldRenderer field={f} value={values[f.id]} onChange={(v) => updateField(f.id, v)} />
             </div>
           ))}
 
-          <Toolbar
-            onDownload={onDownload}
-            onCopyLink={onCopyLink}
-            link={link}
-            loading={loading}
-          />
+          <Toolbar onDownload={onDownload} onCopyLink={onCopyLink} link={link} loading={loading} />
 
-          {/* Стили истории */}
           <style>{`
             .history { margin-top: 24px; }
             .history h3 { margin: 0 0 6px 0; }
             .history-sub { font-size: 12px; opacity: 0.75; margin-bottom: 12px; }
-
             .history-grid { display: grid; gap: 12px; }
             details.history-card {
               border-radius: 14px;
@@ -514,51 +576,21 @@ const App: React.FC = () => {
               border: 1px solid transparent;
               box-shadow: 0 4px 12px rgba(0,0,0,0.06);
             }
-            .history-summary {
-              list-style: none;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              gap: 10px;
-            }
+            .history-summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
             .history-summary::-webkit-details-marker { display: none; }
-            .history-summary .meta {
-              display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
-            }
-            .badge {
-              display: inline-flex; align-items: center; gap: 6px;
-              font-size: 12px; padding: 4px 8px; border-radius: 999px;
-              background: #fff3e8; color: #c24a00; border: 1px solid #ffd7b3;
-            }
+            .history-summary .meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+            .badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 8px; border-radius: 999px; background: #fff3e8; color: #c24a00; border: 1px solid #ffd7b3; }
             .history-actions { display: inline-flex; gap: 8px; align-items: center; }
-            .btn {
-              all: unset; cursor: pointer; padding: 6px 10px; border-radius: 10px;
-              font-weight: 600; font-size: 13px; line-height: 1;
-              transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
-              border: 1px solid rgba(0,0,0,0.08);
-              box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-              background: #ffffff;
-            }
+            .btn { all: unset; cursor: pointer; padding: 6px 10px; border-radius: 10px; font-weight: 600; font-size: 13px; line-height: 1; transition: transform .15s ease, box-shadow .2s ease, background .2s ease; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 1px 2px rgba(0,0,0,0.06); background: #ffffff; }
             .btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
             .btn:active { transform: translateY(0); }
-            .btn-accent {
-              background: linear-gradient(135deg, #ffd29e, #ff9b4a);
-              color: #4a2700; border: none;
-              box-shadow: 0 3px 10px rgba(255,155,74,0.25);
-            }
+            .btn-accent { background: linear-gradient(135deg, #ffd29e, #ff9b4a); color: #4a2700; border: none; box-shadow: 0 3px 10px rgba(255,155,74,0.25); }
             .btn-accent:hover { box-shadow: 0 6px 16px rgba(255,155,74,0.35); }
-            .btn-danger {
-              background: linear-gradient(135deg, #ff7a7a, #ff4d4d);
-              color: #fff; border: none;
-              box-shadow: 0 3px 10px rgba(255,77,77,0.25);
-            }
+            .btn-danger { background: linear-gradient(135deg, #ff7a7a, #ff4d4d); color: #fff; border: none; box-shadow: 0 3px 10px rgba(255,77,77,0.25); }
             .btn-danger:hover { box-shadow: 0 6px 16px rgba(255,77,77,0.35); }
             .history-body { margin-top: 10px; }
             .history-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-            .history-table td {
-              vertical-align: top; padding: 8px 10px; border-top: 1px dashed #eee;
-            }
+            .history-table td { vertical-align: top; padding: 8px 10px; border-top: 1px dashed #eee; }
             .history-table td.key { width: 35%; font-weight: 700; color: #3a2a18; }
             .history-link { color: #cc5400; text-decoration: underline; }
             .history-code { background: #f6f6f6; padding: 2px 6px; border-radius: 6px; }
@@ -566,17 +598,20 @@ const App: React.FC = () => {
             .history-empty { opacity: .7; }
           `}</style>
 
-          {/* Локализованный блок истории */}
           <div className="history">
-            <h3>{TXT.historyTitle}</h3>
-            <div className="history-sub">{TXT.historySubtitle}</div>
+            <h3>{isRu ? 'История генераций' : 'Generation history'}</h3>
+            <div className="history-sub">
+              {isRu ? 'Хранится только в этом браузере · максимум 30 записей'
+                   : 'Stored only in this browser · up to 30 entries'}
+            </div>
 
             {history.length === 0 ? (
-              <div>{TXT.empty}</div>
+              <div>{isRu ? 'Пока пусто.' : 'Nothing here yet.'}</div>
             ) : (
               <div className="history-grid">
                 {history.map(item => {
-                  const left = `${fmtDate(item.requestedAt)} — ${item.briefId} (${item.lang})`;
+                  const fmt = (iso: string) => new Date(iso).toLocaleString(isRu ? 'ru-RU' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' });
+                  const left = `${fmt(item.requestedAt)} — ${item.briefId} (${item.lang})`;
                   return (
                     <details key={item.id} className="history-card">
                       <summary className="history-summary">
@@ -585,24 +620,11 @@ const App: React.FC = () => {
                           {item.link ? <span className="badge">PDF</span> : null}
                         </div>
                         <div className="history-actions">
-                          <button
-                            className="btn btn-accent"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              loadHistoryIntoForm(item);
-                            }}
-                          >
-                            {TXT.loadInto}
+                          <button className="btn btn-accent" onClick={(e) => { e.preventDefault(); e.stopPropagation(); loadHistoryIntoForm(item); }}>
+                            {isRu ? 'Загрузить в форму' : 'Load into form'}
                           </button>
                           {item.link ? (
-                            <a
-                              className="btn"
-                              href={item.link}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                            >
+                            <a className="btn" href={item.link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
                               {isRu ? 'Открыть' : 'Open'}
                             </a>
                           ) : null}
@@ -611,11 +633,13 @@ const App: React.FC = () => {
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              if (confirm(TXT.confirmRemove)) deleteHistoryItem(item.id);
+                              if (confirm(isRu ? 'Удалить эту запись из истории?' : 'Delete this history entry?')) {
+                                deleteHistoryItem(item.id);
+                              }
                             }}
-                            title={TXT.remove}
+                            title={isRu ? 'Удалить' : 'Delete'}
                           >
-                            {TXT.remove}
+                            {isRu ? 'Удалить' : 'Delete'}
                           </button>
                         </div>
                       </summary>
@@ -639,7 +663,6 @@ const App: React.FC = () => {
             )}
           </div>
 
-          {/* Toast */}
           <div
             id="toast"
             style={{
@@ -647,11 +670,13 @@ const App: React.FC = () => {
               position: 'fixed',
               right: 16,
               bottom: 16,
-              background: 'rgba(0,0,0,0.9)',
+              background: 'rgba(0,0,0,0.92)',
               color: '#fff',
               padding: '10px 14px',
               borderRadius: 10,
               zIndex: 1000,
+              maxWidth: 420,
+              whiteSpace: 'pre-line'
             }}
           />
         </div>
