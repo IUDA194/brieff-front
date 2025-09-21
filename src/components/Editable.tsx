@@ -144,12 +144,12 @@ export const Editable: React.FC<Props> = ({
           background: #fff;
           border: 1px solid var(--border);
           border-radius: 14px;
-          overflow: hidden; /* фиксим сколы на скруглениях */
-          box-shadow: 0 1px 3px rgba(0,0,0,.08);
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0,0,0,.05);
           transition: box-shadow .2s ease, border-color .2s ease;
         }
         .headless-editor:focus-within {
-          border-color: #ffc58f;
+          border-color: var(--orange-light);
           box-shadow: 0 0 0 3px rgba(255, 162, 89, 0.25);
         }
 
@@ -174,32 +174,38 @@ export const Editable: React.FC<Props> = ({
           width: 34px;
           height: 34px;
           border-radius: 999px;
-          background: linear-gradient(135deg, var(--orange2), var(--orange));
-          color: #fff;
+          background: #f3f4f6; /* серый фон по умолчанию */
+          color: #6b7280;       /* серые иконки */
           cursor: pointer;
           user-select: none;
-          transition: background .2s ease, transform .1s ease, box-shadow .2s ease, opacity .2s ease;
-          box-shadow: 0 2px 4px rgba(0,0,0,.15);
+          transition: background .2s ease, transform .1s ease, box-shadow .2s ease, color .2s ease;
         }
         .he-btn svg { width: 18px; height: 18px; pointer-events: none; }
         .he-btn:hover {
-          background: linear-gradient(135deg, var(--orange-light), var(--orange2));
+          background: linear-gradient(135deg, var(--orange-light), var(--orange));
+          color: #fff;
           transform: translateY(-1px);
-          box-shadow: 0 4px 10px rgba(0,0,0,.18);
+          box-shadow: 0 3px 6px rgba(0,0,0,.18);
         }
         .he-btn:active {
-          background: linear-gradient(135deg, var(--orange-dark), var(--orange));
+          background: linear-gradient(135deg, var(--orange-dark), var(--orange2));
+          color: #fff;
           transform: translateY(1px);
           box-shadow: inset 0 2px 4px rgba(0,0,0,.2);
         }
-        .he-btn.active { outline: 2px solid #fff; outline-offset: -3px; }
+        .he-btn.active {
+          background: linear-gradient(135deg, var(--orange2), var(--orange));
+          color: #fff;
+          box-shadow: 0 0 0 2px #ffe5cc inset;
+        }
         .he-btn.disabled, .he-btn:disabled {
-          background: var(--pill-disabled);
-          color: #fff3e0;
+          background: #e5e7eb;
+          color: #9ca3af;
           cursor: not-allowed;
-          opacity: .7;
+          opacity: .6;
           box-shadow: none;
         }
+
         .he-sep { width: 1px; height: 22px; background: var(--border); margin: 0 2px; }
 
         .he-content {
@@ -223,7 +229,6 @@ export const Editable: React.FC<Props> = ({
         .he-content h3 { font-size: 18.7px; }
         .he-content h4 { font-size: 16px; }
 
-        /* Оранжевые точки */
         .he-content ul { padding-left: 1.5em; list-style: none; }
         .he-content ul li { position: relative; }
         .he-content ul li::before {
@@ -249,7 +254,7 @@ export const Editable: React.FC<Props> = ({
         }
         hr {
           border: none;
-          border-top: 2px solid #9f9d9cff;
+          border-top: 2px solid #d1d5db;
           margin: 24px 0;
         }
 
@@ -268,18 +273,16 @@ export const Editable: React.FC<Props> = ({
           }
         }
 
-        /* Ручка ресайза — отдельная зона */
         .he-resizer {
           position: relative;
           height: 14px;
-          background: #fff; /* тот же фон, что и редактор */
+          background: #fff;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: ns-resize;
           user-select: none;
         }
-        /* линия-разделитель не упирается в углы */
         .he-resizer::before {
           content: "";
           position: absolute;
@@ -298,6 +301,9 @@ export const Editable: React.FC<Props> = ({
           opacity: .9;
         }
       `}</style>
+
+
+
 
 
       {/* Панель */}
