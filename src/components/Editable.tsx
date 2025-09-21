@@ -3,6 +3,7 @@ import React from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+import HardBreak from "@tiptap/extension-hard-break";
 import {
   Bold, Italic, Strikethrough, Eraser,
   Heading1, Heading2, Heading3, List as ListBulleted,
@@ -14,7 +15,7 @@ type Props = {
   value: string;
   placeholder?: string;
   onChange: (html: string) => void;
-  height?: number; // стартовая высота области редактирования
+  height?: number;
 };
 
 const IconBtn: React.FC<
@@ -45,7 +46,6 @@ export const Editable: React.FC<Props> = ({
   onChange,
   height = 200,
 }) => {
-  // управляемая высота редактора
   const [editorHeight, setEditorHeight] = React.useState<number>(height);
   const isResizingRef = React.useRef(false);
   const startYRef = React.useRef(0);
@@ -54,6 +54,14 @@ export const Editable: React.FC<Props> = ({
   const editor = useEditor({
     extensions: [
       StarterKit,
+      HardBreak.extend({
+        addKeyboardShortcuts() {
+          return {
+            "Shift-Enter": () => this.editor.commands.splitBlock(),
+            "Mod-Enter": () => this.editor.commands.setHardBreak(),
+          };
+        },
+      }),
       Placeholder.configure({
         placeholder,
         showOnlyWhenEditable: true,
@@ -71,11 +79,8 @@ export const Editable: React.FC<Props> = ({
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
-  // Клик по «пустой» области → курсор в конец (Notion-like),
-  // но игнорируем клики, начинающиеся на ручке ресайза.
   const handleMouseDownOnContainer = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!editor) return;
-    // если кликнули по ручке ресайза — выходим
     const targetEl = e.target as HTMLElement;
     if (targetEl.closest(".he-resizer")) return;
 
@@ -85,7 +90,6 @@ export const Editable: React.FC<Props> = ({
     const target = e.target as Node;
     const clickedInsidePM = pmEl.contains(target);
 
-    // только если реально попали в «пустоту» (корень) — ставим курсор в конец
     if (!clickedInsidePM || target === pmEl) {
       const { state, view } = editor;
       const end = state.doc.content.size;
@@ -96,12 +100,10 @@ export const Editable: React.FC<Props> = ({
     }
   };
 
-  // --- Ресайз через ручку ---
   const onResizerMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     isResizingRef.current = true;
     startYRef.current = e.clientY;
     startHRef.current = editorHeight;
-    // Во время ресайза отключаем выделение текста
     document.body.style.userSelect = "none";
     document.body.style.cursor = "ns-resize";
   };
@@ -110,7 +112,7 @@ export const Editable: React.FC<Props> = ({
     const onMove = (e: MouseEvent) => {
       if (!isResizingRef.current) return;
       const dy = e.clientY - startYRef.current;
-      const next = Math.max(180, startHRef.current + dy); // минимальная высота
+      const next = Math.max(180, startHRef.current + dy);
       setEditorHeight(next);
     };
     const onUp = () => {
@@ -152,7 +154,6 @@ export const Editable: React.FC<Props> = ({
           border-color: var(--orange-light);
           box-shadow: 0 0 0 3px rgba(255, 162, 89, 0.25);
         }
-
         .he-toolbar {
           display: flex;
           align-items: center;
@@ -165,7 +166,6 @@ export const Editable: React.FC<Props> = ({
           top: 0;
           z-index: 5;
         }
-
         .he-btn {
           all: unset;
           display: inline-flex;
@@ -174,8 +174,8 @@ export const Editable: React.FC<Props> = ({
           width: 34px;
           height: 34px;
           border-radius: 999px;
-          background: #f3f4f6; /* серый фон по умолчанию */
-          color: #6b7280;       /* серые иконки */
+          background: #f3f4f6;
+          color: #6b7280;
           cursor: pointer;
           user-select: none;
           transition: background .2s ease, transform .1s ease, box-shadow .2s ease, color .2s ease;
@@ -205,19 +205,13 @@ export const Editable: React.FC<Props> = ({
           opacity: .6;
           box-shadow: none;
         }
-
         .he-sep { width: 1px; height: 22px; background: var(--border); margin: 0 2px; }
-
-        .he-content {
-          padding: 16px 18px;
-          cursor: text;
-        }
+        .he-content { padding: 16px 18px; cursor: text; }
         .he-content .ProseMirror {
           min-height: var(--he-min-h);
           outline: none;
           cursor: text;
         }
-
         .he-content p { margin: 0.6em 0; font-size: 15px; font-weight: 400; }
         .he-content h1, .he-content h2, .he-content h3, .he-content h4 {
           margin: 0.8em 0 0.4em;
@@ -228,7 +222,6 @@ export const Editable: React.FC<Props> = ({
         .he-content h2 { font-size: 21.3px; }
         .he-content h3 { font-size: 18.7px; }
         .he-content h4 { font-size: 16px; }
-
         .he-content ul { padding-left: 1.5em; list-style: none; }
         .he-content ul li { position: relative; }
         .he-content ul li::before {
@@ -239,7 +232,6 @@ export const Editable: React.FC<Props> = ({
           font-weight: 900;
         }
         .he-content ol { padding-left: 1.5em; list-style: decimal; }
-
         .he-content blockquote {
           border-left: 3px solid var(--orange-light);
           padding-left: 10px;
@@ -257,9 +249,7 @@ export const Editable: React.FC<Props> = ({
           border-top: 2px solid #d1d5db;
           margin: 24px 0;
         }
-
         .he-content :focus { outline: none !important; }
-
         @media (max-width: 640px) {
           .he-toolbar {
             overflow-x: auto;
@@ -272,7 +262,6 @@ export const Editable: React.FC<Props> = ({
             border-radius: 999px;
           }
         }
-
         .he-resizer {
           position: relative;
           height: 14px;
@@ -302,11 +291,6 @@ export const Editable: React.FC<Props> = ({
         }
       `}</style>
 
-
-
-
-
-      {/* Панель */}
       <div className="he-toolbar" role="toolbar" aria-label="Text formatting">
         <IconBtn onClick={() => editor?.chain().focus().toggleBold().run()} active={editor?.isActive("bold")} title="Жирный">
           <Bold />
@@ -317,13 +301,10 @@ export const Editable: React.FC<Props> = ({
         <IconBtn onClick={() => editor?.chain().focus().toggleStrike().run()} active={editor?.isActive("strike")} title="Зачёркнутый">
           <Strikethrough />
         </IconBtn>
-
         <Sep />
-
         <IconBtn onClick={() => editor?.chain().focus().unsetAllMarks().clearNodes().run()} title="Очистить форматирование">
           <Eraser />
         </IconBtn>
-
         <Sep />
         <IconBtn onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()} active={editor?.isActive("heading", { level: 1 })} title="H1">
           <Heading1 />
@@ -334,18 +315,14 @@ export const Editable: React.FC<Props> = ({
         <IconBtn onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} active={editor?.isActive("heading", { level: 3 })} title="H3">
           <Heading3 />
         </IconBtn>
-
         <Sep />
-
         <IconBtn onClick={() => editor?.chain().focus().toggleBulletList().run()} active={editor?.isActive("bulletList")} title="Маркированный список">
           <ListBulleted />
         </IconBtn>
         <IconBtn onClick={() => editor?.chain().focus().toggleOrderedList().run()} active={editor?.isActive("orderedList")} title="Нумерованный список">
           <ListOrdered />
         </IconBtn>
-
         <Sep />
-
         <IconBtn onClick={() => editor?.chain().focus().undo().run()} disabled={!editor?.can().undo()} title="Отменить">
           <UndoIcon />
         </IconBtn>
@@ -354,12 +331,10 @@ export const Editable: React.FC<Props> = ({
         </IconBtn>
       </div>
 
-      {/* Контент — ловим клики по пустому месту (исключаем ручку ресайза) */}
       <div className="he-content" onMouseDown={handleMouseDownOnContainer}>
         <EditorContent editor={editor} />
       </div>
 
-      {/* Ручка ресайза (не мешает выделению в тексте) */}
       <div className="he-resizer" onMouseDown={onResizerMouseDown} role="separator" aria-orientation="vertical" aria-label="Resize editor">
         <div className="he-resizer-grip" />
       </div>
