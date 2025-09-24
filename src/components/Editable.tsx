@@ -51,33 +51,38 @@ export const Editable: React.FC<Props> = ({
   const startYRef = React.useRef(0);
   const startHRef = React.useRef(0);
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      HardBreak.extend({
-        addKeyboardShortcuts() {
-          return {
-            "Shift-Enter": () => this.editor.commands.splitBlock(),
-            "Mod-Enter": () => this.editor.commands.setHardBreak(),
-          };
+  const editor = useEditor(
+    {
+      extensions: [
+        StarterKit,
+        HardBreak.extend({
+          addKeyboardShortcuts() {
+            return {
+              "Shift-Enter": () => this.editor.commands.splitBlock(),
+              "Mod-Enter": () => this.editor.commands.setHardBreak(),
+            };
+          },
+        }),
+        Placeholder.configure({
+          placeholder,                    // ← сюда приходит актуальный текст
+          showOnlyWhenEditable: true,
+          showOnlyCurrent: true,
+          emptyEditorClass: "is-editor-empty",
+        }),
+      ],
+      content: value || "",
+      editorProps: {
+        attributes: {
+          spellCheck: "false",
+          "data-gramm": "false",
         },
-      }),
-      Placeholder.configure({
-        placeholder,
-        showOnlyWhenEditable: true,
-        showOnlyCurrent: true,
-        emptyEditorClass: "is-editor-empty",
-      }),
-    ],
-    content: value || "",
-    editorProps: {
-      attributes: {
-        spellCheck: "false",
-        "data-gramm": "false",
       },
+      onUpdate: ({ editor }) => onChange(editor.getHTML()),
     },
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
-  });
+    [placeholder]                         // ← пересоздать editor при смене плейсхолдера
+    // или [locale] если у тебя есть локаль
+  );
+
 
   const handleMouseDownOnContainer = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!editor) return;
