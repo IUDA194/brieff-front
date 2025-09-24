@@ -3,7 +3,7 @@ import type { AnyBrief } from "./schemas";
 
 export type ValidationErrorMap = Record<string, string>;
 
-type KnownType = "static" | "video" | "print" | "logo" | "presentation" | "prezent" | "pack";
+type KnownType = "static" | "video" | "print" | "logo" | "presentation" | "prezent" | "pack"  | "upacovca";
 
 function parsePath(pathname: string) {
   const parts = pathname.replace(/^\/+|\/+$/g, "").split("/");

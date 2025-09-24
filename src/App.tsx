@@ -159,7 +159,7 @@ function parsePath(pathname: string) {
   const lang = (parts[1] || "").toLowerCase();
   return { type, lang };
 }
-const ALLOWED_TYPES = ["static", "video", "print", "logo", "pack", "presentation", "prezent"] as const;
+const ALLOWED_TYPES = ["static", "video", "print", "logo", "pack", "presentation", "prezent", "upacovca"] as const;
 type AllowedType = typeof ALLOWED_TYPES[number];
 const TYPE_ALIASES: Record<string, AllowedType> = {
   prezent: "presentation",

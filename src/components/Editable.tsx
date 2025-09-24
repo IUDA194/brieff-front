@@ -289,6 +289,17 @@ export const Editable: React.FC<Props> = ({
           background: linear-gradient(90deg, var(--orange2), var(--orange));
           opacity: .9;
         }
+        .he-content .ProseMirror p.is-editor-empty:first-child::before,
+        .he-content .ProseMirror h1.is-editor-empty:first-child::before,
+        .he-content .ProseMirror h2.is-editor-empty:first-child::before,
+        .he-content .ProseMirror h3.is-editor-empty:first-child::before {
+          content: attr(data-placeholder);
+          pointer-events: none;
+          float: left;
+          height: 0;
+          color: #9ca3af;        /* серый текст плейсхолдера */
+          opacity: .9;
+        }
       `}</style>
 
       <div className="he-toolbar" role="toolbar" aria-label="Text formatting">

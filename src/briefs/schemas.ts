@@ -1,7 +1,7 @@
 // src/briefs/schemas.ts
 
 export type Locale = "ru" | "uk" | "en";
-export type BriefType = "static" | "video" | "print" | "logo" | "presentation";
+export type BriefType = "static" | "video" | "print" | "logo" | "presentation" | "upacovca";
 
 export interface Contact {
   name: string;
@@ -255,9 +255,48 @@ export interface PresentationBrief {
 }
 
 
+export interface UpacovcaStyle {
+  keywords?: string[];          // минимализм, ярко, премиум и т.п.
+  colorPreferences?: string[];  // желаемые цвета
+  avoid?: string[];             // чего избегать
+}
+
+export interface UpacovcaDeliverables {
+  exports: ExportFormat[];              // PNG/JPG для постов, при необходимости MP4 для анимаций
+  sourceFiles?: ("AI" | "PSD" | "FIGMA")[];
+  needEditableText?: boolean;
+}
+
+export interface UpacovcaBrief extends BaseBrief {
+  type: "upacovca";
+
+  // 1. Текст для постов/слайдов (свободный формат, можно маркировать "Пост 1 / Слайд 1/2")
+  postsText: string;
+
+  // 2. ЦА — можно дублировать/детализировать BaseBrief.audience
+  // audience?: Audience; // уже есть в BaseBrief
+
+  // 3. Материалы — также дублируются через BaseBrief.brand.downloadLinks + references
+  assetsNote?: string;
+
+  // 4. Визуальный стиль
+  style?: UpacovcaStyle;
+
+  // 5. Брендовые цвета/шрифты — лежат в BaseBrief.brand
+  // 6. Ниша/описание
+  niche?: string;
+
+  // 7. Сроки — есть в BaseBrief.deadline
+  // 8. Референсы — есть в BaseBrief.references
+
+  deliverables?: UpacovcaDeliverables;
+}
+
+// ...ниже — обновляем union:
 export type AnyBrief =
   | StaticBrief
   | VideoBrief
   | PrintBrief
   | LogoBrief
-  | PresentationBrief;
+  | PresentationBrief
+  | UpacovcaBrief;
