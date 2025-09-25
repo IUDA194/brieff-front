@@ -52,19 +52,6 @@ export function validateBrief(
     dbg("❌ projectTitle");
   } else dbg("✅ projectTitle");
 
-  if (effectiveType !== "presentation" && effectiveType !== "prezent") {
-    if (!(data as any)?.contacts?.name?.trim()) {
-      errors["contacts.name"] = "Контакт: имя обязательно";
-      dbg("❌ contacts.name");
-    } else dbg("✅ contacts.name");
-    if (!(data as any)?.contacts?.email?.trim()) {
-      errors["contacts.email"] = "Контакт: email обязателен";
-      dbg("❌ contacts.email");
-    } else dbg("✅ contacts.email");
-  } else {
-    dbg("ℹ️ presentation: contacts.* не требуются");
-  }
-
   switch (effectiveType) {
     case "static":
       if (!((data as any).sizes?.length > 0)) {

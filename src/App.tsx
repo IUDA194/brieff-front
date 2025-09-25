@@ -414,16 +414,6 @@ const App: React.FC = () => {
     if (!schema) return;
     if (loading) return;
 
-    // клиентская валидация
-    const vErrors = validateBrief(buildValidationData() as any, { href: pageUrl });
-    if (Object.keys(vErrors).length > 0) {
-      const firstKey = Object.keys(vErrors)[0];
-      scrollToErrorField(firstKey);
-      showToast(isRu ? 'Исправьте ошибки в форме:\n' + stringifyErrors(vErrors)
-                     : 'Please fix form errors:\n' + stringifyErrors(vErrors));
-      return;
-    }
-
     const briefIdPre = pickBriefId({ pageUrl, current, schemaId: schema?.id ?? null });
     if (!briefIdPre) {
       showToast(isRu ? 'Не удалось определить briefId.' : 'Failed to resolve briefId.');

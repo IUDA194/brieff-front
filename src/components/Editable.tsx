@@ -64,7 +64,7 @@ export const Editable: React.FC<Props> = ({
           },
         }),
         Placeholder.configure({
-          placeholder,                    // ← сюда приходит актуальный текст
+          placeholder,
           showOnlyWhenEditable: true,
           showOnlyCurrent: true,
           emptyEditorClass: "is-editor-empty",
@@ -79,10 +79,8 @@ export const Editable: React.FC<Props> = ({
       },
       onUpdate: ({ editor }) => onChange(editor.getHTML()),
     },
-    [placeholder]                         // ← пересоздать editor при смене плейсхолдера
-    // или [locale] если у тебя есть локаль
+    [placeholder]
   );
-
 
   const handleMouseDownOnContainer = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!editor) return;
@@ -105,19 +103,31 @@ export const Editable: React.FC<Props> = ({
     }
   };
 
-  const onResizerMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  // —— Pointer-based resize: мышь + тач + стилус
+  const onResizerPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // запретим скролл страницы во время перетаскивания
+    e.preventDefault();
+    // захватываем pointer, если доступно
+    try {
+      (e.currentTarget as any).setPointerCapture?.(e.pointerId);
+    } catch (_) {}
+
     isResizingRef.current = true;
     startYRef.current = e.clientY;
     startHRef.current = editorHeight;
+
+    // на десктопе подсказка курсора; на мобилке просто не навредит
     document.body.style.userSelect = "none";
     document.body.style.cursor = "ns-resize";
   };
 
   React.useEffect(() => {
-    const onMove = (e: MouseEvent) => {
+    const onMove = (e: PointerEvent) => {
       if (!isResizingRef.current) return;
+      // важно: предотвратить жесты прокрутки/потягивания на мобилке
+      e.preventDefault();
       const dy = e.clientY - startYRef.current;
-      const next = Math.max(180, startHRef.current + dy);
+      const next = Math.max(160, startHRef.current + dy);
       setEditorHeight(next);
     };
     const onUp = () => {
@@ -126,11 +136,13 @@ export const Editable: React.FC<Props> = ({
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
     };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+
+    // используем pointer события глобально
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onUp, { passive: true });
     return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("pointermove", onMove as any);
+      window.removeEventListener("pointerup", onUp as any);
     };
   }, [editorHeight]);
 
@@ -276,6 +288,9 @@ export const Editable: React.FC<Props> = ({
           justify-content: center;
           cursor: ns-resize;
           user-select: none;
+          /* Ключ для мобильных: запрещаем нативные жесты,
+             чтобы pointermove приходил стабильно */
+          touch-action: none;
         }
         .he-resizer::before {
           content: "";
@@ -293,6 +308,7 @@ export const Editable: React.FC<Props> = ({
           border-radius: 999px;
           background: linear-gradient(90deg, var(--orange2), var(--orange));
           opacity: .9;
+          touch-action: none;
         }
         .he-content .ProseMirror p.is-editor-empty:first-child::before,
         .he-content .ProseMirror h1.is-editor-empty:first-child::before,
@@ -302,7 +318,7 @@ export const Editable: React.FC<Props> = ({
           pointer-events: none;
           float: left;
           height: 0;
-          color: #9ca3af;        /* серый текст плейсхолдера */
+          color: #9ca3af;
           opacity: .9;
         }
       `}</style>
@@ -351,7 +367,13 @@ export const Editable: React.FC<Props> = ({
         <EditorContent editor={editor} />
       </div>
 
-      <div className="he-resizer" onMouseDown={onResizerMouseDown} role="separator" aria-orientation="vertical" aria-label="Resize editor">
+      <div
+        className="he-resizer"
+        onPointerDown={onResizerPointerDown}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize editor"
+      >
         <div className="he-resizer-grip" />
       </div>
     </div>
