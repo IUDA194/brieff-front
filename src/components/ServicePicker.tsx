@@ -1,7 +1,8 @@
 // src/components/ServicePicker.tsx
 import React from "react";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import { LangSwitcher, type LangCode } from "./LangSwitcher";
+import { useI18n } from "../i18n/I18nProvider";
 
 /** Языки интерфейса */
 export type ServicePickerProps = {
@@ -16,137 +17,76 @@ export type ServicePickerProps = {
    *   pack: "Package" // допустимо — будет считаться дефолтом (en)
    * }
    */
-  titles: Record<
-    string,
-    | string
-    | Partial<Record<LangCode, string>>
-  >;
-  currentLang: LangCode;
+  titles: Record<string, string | Partial<Record<LangCode, string>>>;
   onSelect: (id: string) => void;
-  onChangeLang: (lang: LangCode) => void;
   onClose: () => void;
 };
 
-/** UI-строки тоже во вложенном формате */
-const UI_TEXT: Record<
-  "question" | "changeLanguage",
-  Partial<Record<LangCode, string>> & { en: string }
-> = {
-  question: {
-    en: "Which service would you like to select a brief for?",
-    ru: "Какой сервис вы хотите выбрать для брифа?",
-    ua: "Який сервіс ви хочете обрати для брифу?",
-  },
-  changeLanguage: {
-    en: "Change language",
-    ru: "Сменить язык",
-    ua: "Змінити мову",
-  },
-};
-
-/** Достаём строку из UI_TEXT с фоллбэком на en */
-function t<K extends keyof typeof UI_TEXT>(key: K, lang: LangCode) {
-  const dict = UI_TEXT[key];
-  return (dict[lang] ?? dict.en)!;
-}
-
-/** Универсальный геттер локализованного названия сервиса для вложенного titles */
+/** Универсальный геттер локализованного названия сервиса */
 function getLocalizedTitle(
   id: string,
   titles: ServicePickerProps["titles"],
   lang: LangCode
 ): string {
   const node = titles[id];
+  if (typeof node === "string") return node || id;
 
-  // Если это просто строка — принимаем как дефолт (en)
-  if (typeof node === "string") {
-    return node || id;
-  }
-
-  // Если объект — пробуем exact lang → en → любую непустую строку → id
   if (node && typeof node === "object") {
     const exact = node[lang];
     if (typeof exact === "string" && exact.trim()) return exact;
 
-    const en = node.en ?? node["EN"] ?? node["En"];
+    const en = node.en ?? (node as any)["EN"] ?? (node as any)["En"];
     if (typeof en === "string" && en.trim()) return en;
 
-    // Возьмём первый непустой перевод, если есть
     const first = Object.values(node).find(
       (v) => typeof v === "string" && !!v.trim()
     ) as string | undefined;
     if (first) return first;
   }
-
   return id;
 }
-
-const LS_LANG_KEY = "brief-lang";
 
 export const ServicePicker: React.FC<ServicePickerProps> = ({
   open,
   briefIds,
   titles,
-  currentLang,
   onSelect,
-  onChangeLang,
   onClose,
 }) => {
   if (!open) return null;
 
-  // Локальный язык для мгновенного перевода всего компонента
-  const [lang, setLang] = React.useState<LangCode>(() => {
-    try {
-      const saved = window.localStorage.getItem(LS_LANG_KEY) as LangCode | null;
-      return (saved || currentLang) as LangCode;
-    } catch {
-      return currentLang;
-    }
-  });
+  const { lang, setLang, t } = useI18n();
 
-  // Синхронизация при внешней смене currentLang
-  React.useEffect(() => {
-    setLang((prev) => (prev !== currentLang ? currentLang : prev));
-  }, [currentLang]);
-
-  const titleText = t("question", lang);
-  const langBtnTitle = t("changeLanguage", lang);
-
-  // Меняем язык: локально → localStorage → наверх
-  const handleLangChange = (next: LangCode) => {
-    setLang(next);
-    try {
-      window.localStorage.setItem(LS_LANG_KEY, next);
-    } catch {
-      /* ignore */
-    }
-    onChangeLang(next);
+  // обработчик выбора сервиса
+  const handleSelect = (id: string) => {
+    // гарантируем, что язык синхронно сохранится в контекст
+    flushSync(() => {
+      setLang(lang);
+    });
+    onSelect(id);
+    // можно закрывать попап
+    onClose();
   };
 
   return createPortal(
-    <div
-      className="picker-overlay"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
+    <div className="picker-overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="picker-card" onClick={(e) => e.stopPropagation()}>
         {/* LangSwitcher — всегда над заголовком */}
         <div className="picker-lang-wrap">
           <LangSwitcher
             current={lang}
-            onChange={handleLangChange}
-            title={langBtnTitle}
+            onChange={setLang}
+            title={t("changeLanguage")}
             className="picker-lang"
           />
         </div>
 
         {/* Заголовок */}
         <div className="picker-header">
-          <div className="picker-title">{titleText}</div>
+          <div className="picker-title">{t("question")}</div>
         </div>
 
-        {/* Кнопки сервисов (pill'ы) — берём подписи из вложенного titles */}
+        {/* Кнопки сервисов */}
         <div className="picker-grid">
           {briefIds.map((id) => {
             const label = getLocalizedTitle(id, titles, lang);
@@ -154,7 +94,7 @@ export const ServicePicker: React.FC<ServicePickerProps> = ({
               <button
                 key={id}
                 className="pill"
-                onClick={() => onSelect(id)}
+                onClick={() => handleSelect(id)}
                 aria-label={label}
                 title={label}
               >
@@ -165,7 +105,6 @@ export const ServicePicker: React.FC<ServicePickerProps> = ({
         </div>
       </div>
 
-      {/* СТИЛИ НЕ ТРОГАЛ */}
       <style>{`
 /* ===== Overlay & Card ===== */
 .picker-overlay {
@@ -254,14 +193,15 @@ export const ServicePicker: React.FC<ServicePickerProps> = ({
   justify-content:center;
 
   min-height: var(--pill-h);
-  padding: 10px var(--pill-pad-x);
+  padding: 12px var(--pill-pad-x);
 
   border-radius: var(--pill-radius);
-  border: 1px solid transparent;
-  background: #F2F2F2;
-  color: #2B2B2B;
-  font-weight: 500;
-  font-size: 16px;
+  border: 0px solid #e5e5e5;
+  background: #f5f5f5;
+  color: #2b2b2b;
+
+  font-weight: 600;
+  font-size: 15px;
   line-height: 1;
   white-space: nowrap;
   text-align:center;
@@ -274,19 +214,18 @@ export const ServicePicker: React.FC<ServicePickerProps> = ({
     box-shadow .18s ease;
 }
 
-/* Hover = оранжевый */
+/* Hover = оранжевый градиент (как btn-primary) */
 .pill:hover {
   transform: translateY(-1px);
-  background: linear-gradient(135deg,#ffd29e,#ff9b4a);
-  color: #4a2700;
+  background: linear-gradient(135deg,#ff8c00,#ff6c00);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(255,108,0,0.25);
 }
 
 /* Active (нажатая) */
 .pill:active {
   transform: translateY(0);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.85) inset,
-    0 4px 10px rgba(0,0,0,0.12);
+  box-shadow: 0 6px 16px rgba(255,108,0,0.25);
 }
 
 /* Focus */
@@ -297,14 +236,20 @@ export const ServicePicker: React.FC<ServicePickerProps> = ({
     0 6px 16px rgba(0,0,0,0.1);
 }
 
-/* Selected (оставить оранжевой) */
+/* Disabled */
+.pill[disabled],
+.pill[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: .65;
+  filter: grayscale(.15);
+  box-shadow: none;
+}
+
+/* Selected (оставляем оранжевой после клика) */
 .pill.is-active,
 .pill[aria-pressed="true"] {
-  background: linear-gradient(135deg,#ffd29e,#ff9b4a);
-  color: #4a2700;
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,0.35),
-    0 10px 22px rgba(255,155,74,0.25);
+  background: linear-gradient(135deg,#ff8c00,#ff6c00);
+  color: #fff;
 }
       `}</style>
     </div>,

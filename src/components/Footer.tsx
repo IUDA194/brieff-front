@@ -74,7 +74,7 @@ export const Footer: React.FC<{ active?: string }> = ({ active }) => {
                       aria-current={isActive ? 'page' : undefined}
                       style={{
                         color: isActive ? '#fff' : '#444',
-                        background: isActive ? '#ff6c00' : 'transparent',
+                        background: isActive ? 'linear-gradient(135deg,#ff8c00,#ff6c00)' : 'transparent',
                         fontWeight: isActive ? 600 : 400,
                         textDecoration: 'none',
                         padding: '4px 10px',

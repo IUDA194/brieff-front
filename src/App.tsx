@@ -634,7 +634,7 @@ const App: React.FC = () => {
   display: grid;
   place-items: center;
   cursor: pointer;
-  color: #4a2700;
+  color: linear-gradient(135deg,#ff8c00,#ff6c00);
   background: #fff;
   color:rgba(151, 151, 151, 1);
   border: 1px solid transparent;
@@ -656,10 +656,28 @@ const App: React.FC = () => {
         <button
           className={`scroll-hint ${scrollHint}`}
           onClick={handleScrollHintClick}
-          aria-label={scrollHint === "down" ? (isRu ? "Прокрутить вниз" : "Scroll down") : (isRu ? "Прокрутить вверх" : "Scroll up")}
+          aria-label={
+            scrollHint === "down"
+              ? (isRu ? "Прокрутить вниз" : "Scroll down")
+              : (isRu ? "Прокрутить вверх" : "Scroll up")
+          }
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <defs>
+              {/* 135deg ~ из левого-верхнего в правый-нижний угол */}
+              <linearGradient id="scrollGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#ff8c00" />
+                <stop offset="100%" stopColor="#ff6c00" />
+              </linearGradient>
+            </defs>
+            {/* штрих теперь градиентный */}
+            <path
+              d="M12 5v14M5 12l7 7 7-7"
+              stroke="url(#scrollGrad)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </button>
       )}
