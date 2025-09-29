@@ -26,7 +26,7 @@ const brief: BriefDefinition = {
     title: {
       ru: 'Бриф: презентация',
       en: 'Presentation brief',
-      uk: 'Бриф: презентація',
+      ua: 'Бриф: презентація',
     },
 
     labels: {
@@ -50,7 +50,7 @@ const brief: BriefDefinition = {
         size:         'Size/orientation',
         deadline:     'Deadline',
       },
-      uk: {
+      ua: {
         projectTitle: 'Назва проєкту',
         slidesText:   'Текст для кожного слайду',
         designRefs:   'Фірмовий стиль (посилання)',
@@ -99,7 +99,7 @@ For example: 1920×1080 landscape or 1080×1920 portrait.`,
         deadline: "Specify the desired completion deadline",
       },
 
-      uk: {
+      ua: {
         projectTitle: "Введіть назву проєкту",
         slidesText: `Напишіть текст, який має бути на кожному слайді.
 Наприклад:

@@ -26,7 +26,9 @@ export function realizeSchema(brief: BriefDefinition, lang: Lang): RuntimeSchema
     required: f.required,
     label: L[f.labelKey] ?? f.labelKey,
     placeholder: f.placeholderKey ? (P[f.placeholderKey] ?? f.placeholderKey) : undefined,
-    options: f.options?.map(o => ({ value: o.value, label: L[o.labelKey] ?? o.labelKey }))
+    options: f.options?.map(o => ({ value: o.value, label: L[o.labelKey] ?? o.labelKey })),
+    // ⬇️ ПРОКИДЫВАЕМ URL КАРТИНКИ
+    helpImage: f.helpImageKey ? (P[f.helpImageKey] ?? f.helpImageKey) : undefined,
   }));
 
   return { id: brief.id, title, fields };

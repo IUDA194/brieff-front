@@ -74,9 +74,10 @@ const briefLogo: BriefDefinition = {
         wishes_ph: 'Что обязательно/чего точно не должно быть',
         refs_ph: 'Ссылки/изображения логотипов, которые нравятся',
         budget_ph: 'Ваш бюджет и когда нужен логотип',
-        extras_ph:
-          'Например: логобук, брендбук, фирменный стиль (опишите нужное или оставьте пустым)',
+        extras_ph: 'Например: логобук, брендбук, фирменный стиль (опишите нужное или оставьте пустым)',
         other_ph: 'Любая дополнительная информация',
+        /** ⬇️ путь к картинке-подсказке */
+        formatLogo_help_img: '/logo-format.png'
       },
       en: {
         projectTitle_ph: 'Enter project title',
@@ -91,9 +92,10 @@ const briefLogo: BriefDefinition = {
         wishes_ph: 'Must-have and must-avoid',
         refs_ph: 'Links/images of logos you like',
         budget_ph: 'Your budget and target deadline',
-        extras_ph:
-          'E.g., logobook, brandbook, corporate identity (describe what you need)',
+        extras_ph: 'E.g., logobook, brandbook, corporate identity (describe what you need)',
         other_ph: 'Any additional info',
+        /** ⬇️ image hint path */
+        formatLogo_help_img: '/logo-format.png'
       },
       ua: {
         projectTitle_ph: 'Введіть назву проєкту',
@@ -108,9 +110,10 @@ const briefLogo: BriefDefinition = {
         wishes_ph: 'Що обов’язково/чого не повинно бути',
         refs_ph: 'Посилання/зображення логотипів, що подобаються',
         budget_ph: 'Ваш бюджет і коли потрібен логотип',
-        extras_ph:
-          'Напр.: логобук, брендбук, фірмовий стиль (опишіть, що потрібно)',
+        extras_ph: 'Напр.: логобук, брендбук, фірмовий стиль (опишіть, що потрібно)',
         other_ph: 'Будь-яка додаткова інформація',
+        /** ⬇️ шлях до зображення-підказки */
+        formatLogo_help_img: '/logo-format.png'
       },
     },
   },
@@ -123,7 +126,9 @@ const briefLogo: BriefDefinition = {
     { id: 'associations', type: 'textarea', labelKey: 'associations', placeholderKey: 'associations_ph' },
     { id: 'style',        type: 'textarea', labelKey: 'style',        placeholderKey: 'style_ph' },
     { id: 'brand',        type: 'textarea', labelKey: 'brand',        placeholderKey: 'brand_ph' },
-    { id: 'formatLogo',   type: 'text',     labelKey: 'formatLogo',   placeholderKey: 'formatLogo_ph' },
+
+    { id: 'formatLogo',   type: 'text',     labelKey: 'formatLogo',   placeholderKey: 'formatLogo_ph', helpImageKey: 'formatLogo_help_img' },
+
     { id: 'wishes',       type: 'textarea', labelKey: 'wishes',       placeholderKey: 'wishes_ph' },
     { id: 'refs',         type: 'textarea', labelKey: 'refs',         placeholderKey: 'refs_ph' },
     { id: 'budget',       type: 'text',     labelKey: 'budget',       placeholderKey: 'budget_ph' },

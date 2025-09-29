@@ -4,25 +4,16 @@ import { createPortal, flushSync } from "react-dom";
 import { LangSwitcher, type LangCode } from "./LangSwitcher";
 import { useI18n } from "../i18n/I18nProvider";
 
-/** Языки интерфейса */
+/** Пропсы */
 export type ServicePickerProps = {
   open: boolean;
   briefIds: string[];
-  /**
-   * Вложенная локализация названий кнопок-сервисов.
-   * Пример:
-   * {
-   *   logo: { en: "Logo", ru: "Логотип", ua: "Логотип" },
-   *   site: { en: "Website", ru: "Сайт" },
-   *   pack: "Package" // допустимо — будет считаться дефолтом (en)
-   * }
-   */
   titles: Record<string, string | Partial<Record<LangCode, string>>>;
   onSelect: (id: string) => void;
   onClose: () => void;
 };
 
-/** Универсальный геттер локализованного названия сервиса */
+/** Локализация названий */
 function getLocalizedTitle(
   id: string,
   titles: ServicePickerProps["titles"],
@@ -35,7 +26,7 @@ function getLocalizedTitle(
     const exact = node[lang];
     if (typeof exact === "string" && exact.trim()) return exact;
 
-    const en = node.en ?? (node as any)["EN"] ?? (node as any)["En"];
+    const en = (node as any).en ?? (node as any).EN ?? (node as any).En;
     if (typeof en === "string" && en.trim()) return en;
 
     const first = Object.values(node).find(
@@ -44,6 +35,51 @@ function getLocalizedTitle(
     if (first) return first;
   }
   return id;
+}
+
+/* ===== Порядок как на скрине =====
+   1) static
+   2) presentation / prezent
+   3) print
+   4) video
+   5) logo
+   6) pack / upacovca
+*/
+const ORDER_WEIGHT: Record<string, number> = {
+  static: 1,
+  presentation: 2,
+  prezent: 2,
+  print: 3,
+  video: 4,
+  logo: 5,
+  pack: 6,
+  upacovca: 6,
+};
+
+function baseKey(id: string): string {
+  const s = id.toLowerCase();
+  if (s === "prezent") return "presentation";
+  if (s === "upacovca") return "pack";
+  return s;
+}
+
+function sortAndDedupByOrder(ids: string[]): string[] {
+  const sorted = [...ids].sort((a, b) => {
+    const wa = ORDER_WEIGHT[a.toLowerCase()] ?? ORDER_WEIGHT[baseKey(a)] ?? 999;
+    const wb = ORDER_WEIGHT[b.toLowerCase()] ?? ORDER_WEIGHT[baseKey(b)] ?? 999;
+    if (wa !== wb) return wa - wb;
+    return a.localeCompare(b);
+  });
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of sorted) {
+    const k = baseKey(id);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(id);
+  }
+  return out;
 }
 
 export const ServicePicker: React.FC<ServicePickerProps> = ({
@@ -59,14 +95,15 @@ export const ServicePicker: React.FC<ServicePickerProps> = ({
 
   // обработчик выбора сервиса
   const handleSelect = (id: string) => {
-    // гарантируем, что язык синхронно сохранится в контекст
     flushSync(() => {
       setLang(lang);
     });
     onSelect(id);
-    // можно закрывать попап
     onClose();
   };
+
+  // применяем порядок и убираем дубли алиасов
+  const orderedIds = React.useMemo(() => sortAndDedupByOrder(briefIds), [briefIds]);
 
   return createPortal(
     <div className="picker-overlay" role="dialog" aria-modal="true" onClick={onClose}>
@@ -86,9 +123,9 @@ export const ServicePicker: React.FC<ServicePickerProps> = ({
           <div className="picker-title">{t("question")}</div>
         </div>
 
-        {/* Кнопки сервисов */}
+        {/* Кнопки сервисов — только порядок/дедуп изменены */}
         <div className="picker-grid">
-          {briefIds.map((id) => {
+          {orderedIds.map((id) => {
             const label = getLocalizedTitle(id, titles, lang);
             return (
               <button
@@ -105,6 +142,7 @@ export const ServicePicker: React.FC<ServicePickerProps> = ({
         </div>
       </div>
 
+      {/* СТИЛИ — БЕЗ ИЗМЕНЕНИЙ */}
       <style>{`
 /* ===== Overlay & Card ===== */
 .picker-overlay {

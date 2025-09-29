@@ -544,48 +544,43 @@ const App: React.FC = () => {
   // вложенные локализации для ServicePicker
   const briefTitles: Record<string, string | Partial<Record<LangCode, string>>> = {
     static: {
-      en: "Static banner",
-      ru: "Статический баннер",
-      ua: "Статичний банер",
+      en: "Ad Creatives",
+      ru: "Статика",
+      ua: "Статика",
     },
-    presentation: {
-      en: "Presentation",
-      ru: "Презентация",
-      ua: "Презентація",
-    },
-    // алиас на случай, если где-то используется `prezent`
     prezent: {
-      en: "Presentation",
-      ru: "Презентация",
-      ua: "Презентація",
+      en: "Presentation Design",
+      ru: "Презентации",
+      ua: "Презентації",
     },
     print: {
-      en: "Print materials",
+      en: "Design for Print",
       ru: "Полиграфия",
       ua: "Поліграфія",
     },
     video: {
-      en: "Video",
+      en: "Motion&Video Design",
       ru: "Видео",
       ua: "Відео",
     },
     logo: {
-      en: "Logo design",
+      en: "Logo Design",
       ru: "Логотип",
       ua: "Логотип",
     },
     pack: {
-      en: "Packaging",
-      ru: "Упаковка",
-      ua: "Пакування",
+      en: "Inst Visual",
+      ru: "Упаковка аккаунта",
+      ua: "Упаковка акаунта",
     },
-    // если где-то встречается алиас `upacovca`
+    // алиас для upacovca
     upacovca: {
-      en: "Packaging",
-      ru: "Упаковка",
-      ua: "Пакування",
+      en: "Inst Visual",
+      ru: "Упаковка аккаунта",
+      ua: "Упаковка акаунта",
     },
   };
+
 
 
   const visibleBriefIds = briefIds.length ? briefIds : ['static','presentation','print','video','logo','pack'];
