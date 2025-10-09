@@ -35,10 +35,10 @@
   "rules.3.text1": "No \"you come up with it\", \"as you want\" or \"at your discretion\".",
   "rules.3.text2": "Provide ready, structured information.",
 
-  "footer.links.static": "Static brief",
-  "footer.links.prezent": "Presentation brief",
-  "footer.links.print": "Print brief",
-  "footer.links.video": "Video brief",
-  "footer.links.logo": "Logo brief",
-  "footer.links.pack": "Packaging brief"
+  "footer.links.static": "Ad Creatives",
+  "footer.links.prezent": "Presentation Design",
+  "footer.links.print": "Design for Print",
+  "footer.links.video": "Motion&Video Design",
+  "footer.links.logo": "Logo Design",
+  "footer.links.pack": "Inst Visual"
 }

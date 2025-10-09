@@ -35,10 +35,10 @@
   "rules.3.text1": "Без «вигадaйте самі», «як хочете» чи «на ваш розсуд».",
   "rules.3.text2": "Надавайте готову, структуровану інформацію.",
 
-  "footer.links.static": "Бриф статика",
-  "footer.links.prezent": "Бриф презентації",
-  "footer.links.print": "Бриф поліграфія",
-  "footer.links.video": "Бриф відео",
-  "footer.links.logo": "Бриф логотипи",
-  "footer.links.pack": "Бриф пакування"
+  "footer.links.static": "Статика",
+  "footer.links.prezent": "Презентації",
+  "footer.links.print": "Поліграфія",
+  "footer.links.video": "Відео",
+  "footer.links.logo": "Логотип",
+  "footer.links.pack": "Упаковка акаунта"
 }

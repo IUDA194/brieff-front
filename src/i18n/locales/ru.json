@@ -33,10 +33,10 @@
   "rules.3.text1": "Без \"придумайте сами\", \"как хотите\" или \"на своё усмотрение\".",
   "rules.3.text2": "Давайте готовую, структурированную информацию.",
 
-  "footer.links.static": "Бриф статика",
-  "footer.links.prezent": "Бриф презентации",
-  "footer.links.print": "Бриф полиграфия",
-  "footer.links.video": "Бриф видео",
-  "footer.links.logo": "Бриф логотипы",
-  "footer.links.pack": "Бриф упаковка"
+  "footer.links.static": "Статика",
+  "footer.links.prezent": "Презентации",
+  "footer.links.print": "Полиграфия",
+  "footer.links.video": "Видео",
+  "footer.links.logo": "Логотип",
+  "footer.links.pack": "Упаковка аккаунта"
 }
